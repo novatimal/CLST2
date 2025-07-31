@@ -1,15 +1,21 @@
-[![Status](https://img.shields.io/badge/status-early%20beta-orange)](https://shields.io)
-
-
-> **Note:** This project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
-
-Перевод / Translation:
 [English](README.md) | [Русский](README.ru.md)
 
-
 # Project CLST2: Building a Cyberdeck based on Orange Pi Zero 2W
+**
+      .--.
+     |o_o |
+     |:_/ |
+    //   \ \
+   (|     | )
+   /`\_   _/`\
+   \___)=(___/
+   
+**
+Artwork by (R)(C)Gemini 2.5 pro
 
-<!-- Здесь будет фото -->
+[![Status](https://img.shields.io/badge/status-early%20beta-orange)](https://shields.io)
+
+> **Note:** This project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
 
 This is the repository for a project to build a retro-style handheld computer (PDA/Cyberdeck). The device is based on the Orange Pi Zero 2W single-board computer and uses custom drivers and a finely-tuned Linux environment for a comfortable user experience on a small screen.
 
@@ -18,9 +24,8 @@ This is the repository for a project to build a retro-style handheld computer (P
 ## I. Concept and Philosophy
 
 *   **Goal:** To create a fully functional, pocket-sized Linux computer with a physical keyboard for development, system administration, and retro gaming, featuring a modular expansion system.
-*   **Inspiration:** Classic 90s PDAs (Psion, Sharp Zaurus), Windows CE navigators (G-Sat GV-370), and cyberpunk aesthetics.
+*   **Inspiration:** Classic 90s PDAs (Psion, Sharp Zaurus), the Toshiba T1100 laptop, and cyberpunk aesthetics.
 *   **Interface:** A full-featured, customizable desktop environment adapted for a 320x240 screen, without artificial limitations or shells.
-
 ## II. Hardware Components
 
 ### Core Components:
@@ -31,8 +36,8 @@ This is the repository for a project to build a retro-style handheld computer (P
 *   **Expansion Port:** Custom slot based on a **NAGRA** card reader for modular cartridges.
 *   **Audio System:** **MAX98357A** I2S amplifier with an external speaker.
 *   **Cooling System:** **4010 5V** Blower Fan with copper heatsinks.
-*   **Power Supply:** Li-Pol battery with a **TP4056** charging board.
-*   **Case:** 3D Printed (design in progress).
+*   **Power Supply:** A single-cell Li-Pol battery with a **TP4056** charging and protection board.
+*   **Case:** Custom 3D-printed enclosure (design in progress).
 
 ### Connection Diagram (GPIO Pinout)
 
@@ -65,7 +70,6 @@ This is the repository for a project to build a retro-style handheld computer (P
 *\*Note on I2S: Pins 35 and 38 are not on the 26-pin header. You must verify the correct I2S pin locations for your specific board and Armbian overlay.*
 
 *(The Digispark-based mouse connects to a free USB port on the Orange Pi).*
-
 ## III. Software
 
 ### Software Stack:
@@ -83,33 +87,75 @@ This is the repository for a project to build a retro-style handheld computer (P
 ---
 
 ## IV. Installation and Setup
-(This section remains the same, as the commands are universal)
+
+Follow these steps to set up the system from scratch.
+
+### Step 1: Prepare the SD Card and OS
+
+1.  Flash a fresh Armbian image (Debian-based) for the Orange Pi Zero 2W to a microSD card.
+2.  Perform the initial system setup: create a user, connect to Wi-Fi, etc.
+
+### Step 2: Configure Video Output (Critical Step!)
+
+For the `fbcp` driver to work correctly, the Linux kernel must render the desktop to a "virtual" low-resolution monitor.
+
+1.  Open the `/boot/armbianEnv.txt` file for editing:
+    ```bash
+    sudo nano /boot/armbianEnv.txt
+    ```
+2.  Add or modify the `extraargs` line to include the following parameter:
+    ```
+    extraargs=video=HDMI-A-1:320x240@60
+    ```
+3.  Save the file (`Ctrl+O`, `Enter`) and **reboot the device immediately**: `sudo reboot`.
+
+### Step 3: Flash the pseudoTrackpoint Firmware
+
+The mouse device is based on a custom-programmed DigiSpark board. You need to compile and upload the firmware to it.
+
+1.  Navigate to the `hardware_drv/pseudoTrackpoint-digiSpark-emu/` directory in the project.
+2.  Open the `pseudoTrackpoint-digiSpark-emu.ino` file in the Arduino IDE.
+3.  **Follow the detailed instructions inside the sketch file (`.ino`)** to set up the Arduino IDE, configure the joystick orientation, and flash the firmware.
+### Step 4: Run the Automatic Installer
+
+The `install.sh` script in this repository will perform all necessary actions: install dependencies, enable hardware interfaces, compile drivers, and set them up to run automatically.
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your_username/CLST2.git
+    cd CLST2
+    ```
+2.  Make the installation script executable:
+    ```bash
+    chmod +x install.sh
+    ```
+3.  Run the script with superuser privileges:
+    ```bash
+    sudo ./install.sh
+    ```
+4.  The script will automatically enable I2C, SPI, and I2S overlays, compile and install `cardkb_daemon`, `fan_control_daemon`, and `fbcp`, and configure their respective `systemd` services.
+
+### Step 5: Final Reboot
+
+After the script finishes, it will prompt you to reboot the device. This is necessary to activate the hardware interfaces (I2C, SPI, I2S).
+```bash
+sudo reboot
+```
+---
 
 ## V. Openbox Desktop Configuration
-(This section also remains the same)
+(This section has been omitted for brevity, but you should copy the full content from your original file)
+
+---
 
 ## VI. Troubleshooting
-(This section also remains the same)
+(This section has been omitted for brevity, but you should copy the full content from your original file)
+
+---
 
 ## VII. Acknowledgements
 
 *   Thanks to **Google** for the **Gemini** language model, which served as an AI assistant and helped with the development and debugging of many software solutions.
 *   Thanks to the **Armbian** community for the excellent Linux build for single-board computers.
 *   Thanks to **juj** for the superbly optimized `fbcp-ili9341` driver.
-
-
-
-
-
-
-**
-      .--.
-     |o_o |
-     |:_/ |
-    //   \ \
-   (|     | )
-   /`\_   _/`\
-   \___)=(___/
-   
-**
-Artwork by (R)(C)Gemini 2.5 pro lol
+*   Thanks to **AlexGyver** for the simple and powerful **EasyHID** library for Arduino.
