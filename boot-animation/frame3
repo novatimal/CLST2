@@ -1,0 +1,1 @@
+sudo bash -c 'echo -e "          .--.\n         |o_o |\n    \e[1;97m     |:\e[0m\e[33m_/\e[0m\e[1;97m |\n        //   \\ \\__\n       (| \e[0m\e[34m~ ~ \e[0m\e[1;97m| )'\'' \\\n       /`\\_   _/'\''\n       \\___)=(___\n    \e[0m" > /etc/boot-animation/frame3'
