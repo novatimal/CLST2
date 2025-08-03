@@ -1,17 +1,6 @@
 [English](README.md) | [Русский](README.ru.md)
 
 # Проект CLST2: Создание кибердека на базе Orange Pi Zero 2W
-**
-      .--.
-     |o_o |
-     |:_/ |
-    //   \ \
-   (|     | )
-   /`\_   _/`\
-   \___)=(___/
-   
-**
-Artwork by (R)(C)Gemini 2.5 pro
 
 [![Статус](https://img.shields.io/badge/статус-ранняя%20бета-orange)](https://shields.io)
 
@@ -185,3 +174,15 @@ sudo reboot
 *   Спасибо сообществу **Armbian** за отличную сборку Linux для одноплатных компьютеров.
 *   Спасибо **juj** за великолепно оптимизированный драйвер `fbcp-ili9341`.
 *   Спасибо **AlexGyver** за простую и мощную библиотеку **EasyHID** для Arduino.
+
+**
+      .--.
+     |o_o |
+     |:_/ |
+    //   \ \
+   (|     | )
+   /`\_   _/`\
+   \___)=(___/
+   
+**
+Artwork by (R)(C)Gemini 2.5 pro lol

@@ -1,17 +1,6 @@
 [English](README.md) | [Русский](README.ru.md)
 
 # Project CLST2: Building a Cyberdeck based on Orange Pi Zero 2W
-**
-      .--.
-     |o_o |
-     |:_/ |
-    //   \ \
-   (|     | )
-   /`\_   _/`\
-   \___)=(___/
-   
-**
-Artwork by (R)(C)Gemini 2.5 pro
 
 [![Status](https://img.shields.io/badge/status-early%20beta-orange)](https://shields.io)
 
@@ -192,3 +181,15 @@ This section describes problems encountered during development and their solutio
 *   Thanks to the **Armbian** community for the excellent Linux build for single-board computers.
 *   Thanks to **juj** for the superbly optimized `fbcp-ili9341` driver.
 *   Thanks to **AlexGyver** for the simple and powerful **EasyHID** library for Arduino.
+
+**
+      .--.
+     |o_o |
+     |:_/ |
+    //   \ \
+   (|     | )
+   /`\_   _/`\
+   \___)=(___/
+   
+**
+Artwork by (R)(C)Gemini 2.5 pro lol
