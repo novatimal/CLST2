@@ -192,4 +192,4 @@ This section describes problems encountered during development and their solutio
    \___)=(___/
    
 **
-Artwork by (R)(C)Gemini 2.5 pro lol
+Artwork by (R)(C)Gemini 2.5 pro
