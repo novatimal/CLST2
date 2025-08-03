@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-early%20beta-orange)](https://shields.io)
 
-> **Note:** This project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
+> **Note:** 99% of this project (including almost all the names like "chiper-slot") was created by Google's Gemini language model, this project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
 
 This is the repository for a project to build a retro-style handheld computer (PDA/Cyberdeck). The device is based on the Orange Pi Zero 2W single-board computer and uses custom drivers and a finely-tuned Linux environment for a comfortable user experience on a small screen.
 
