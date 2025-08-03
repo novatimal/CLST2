@@ -32,8 +32,8 @@ This is the repository for a project to build a retro-style handheld computer (P
 *   **Processing Module:** Orange Pi Zero 2W
 *   **Display:** 2.4" SPI 320x240 LCD (ST7789V controller)
 *   **Keyboard:** M5Stack CardKB (I2C connection)
-*   **Input Device (Mouse):** Analog joystick connected via Digispark ATTiny85 (emulates a USB mouse)
-*   **Expansion Port:** Custom slot based on a **NAGRA** card reader for modular cartridges.
+*   **Input Device (Mouse):** Analog joystick connected via Digispark ATTiny85 (emulates a USB mouse), dubbed the **"pseudoTrackpoint"**.
+*   **Expansion Port:** The **"Cipher-Slot"**, a core component of the custom **Multi-Cartridge System (MCS)**, built upon a card reader from a NAGRA Syster unit.
 *   **Audio System:** **MAX98357A** I2S amplifier with an external speaker.
 *   **Cooling System:** **4010 5V** Blower Fan with copper heatsinks.
 *   **Power Supply:** A single-cell Li-Pol battery with a **TP4056** charging and protection board.
@@ -65,7 +65,7 @@ This is the repository for a project to build a retro-style handheld computer (P
 | **Fan**        | VCC (+)        | 5V (Pin 2 or 4)          | Power             |
 |                | GND (-)        | GND (via transistor)     | Ground            |
 |                | CTRL           | PA3 (Pin 15)             | Control Signal    |
-| **NAGRA Port** | *In development* | *Free GPIOs*           | Custom Bus        |
+| **Cipher-Slot**| *In development* | *Free GPIOs*           | Custom Bus        |
 
 *\*Note on I2S: Pins 35 and 38 are not on the 26-pin header. You must verify the correct I2S pin locations for your specific board and Armbian overlay.*
 
@@ -144,15 +144,48 @@ sudo reboot
 ---
 
 ## V. Openbox Desktop Configuration
-(This section has been omitted for brevity, but you should copy the full content from your original file)
+
+After installation, it is recommended to switch to the lightweight Openbox window manager for a comfortable experience.
+
+1.  **Log into an Openbox session:**
+    *   Log out of your current session.
+    *   On the login screen, click your username.
+    *   A gear icon (⚙️) should appear in the corner. Click it and select "Openbox".
+    *   Enter your password and log in.
+2.  **Initial Setup:**
+    *   You will see a blank gray screen. Right-click -> Terminal.
+    *   Copy the default configuration files:
+        ```bash
+        mkdir -p ~/.config/openbox
+        cp /etc/xdg/openbox/* ~/.config/openbox/
+        ```
+    *   Set up autostart for `tint2` and other programs by adding `tint2 &` to the `~/.config/openbox/autostart` file. Make sure it's executable (`chmod +x ~/.config/openbox/autostart`).
+3.  **Interface Customization:**
+    *   Use `nano` to edit `~/.config/openbox/rc.xml` (for keybindings) and `~/.config/openbox/menu.xml` (for the right-click menu). It is recommended to set the default font to `Terminus` for clarity.
+    *   Use `tint2conf` for graphical configuration of the `tint2` panel.
+    *   Install `lxappearance` to easily change GTK themes and icons.
 
 ---
-
 ## VI. Troubleshooting
-(This section has been omitted for brevity, but you should copy the full content from your original file)
+
+This section describes problems encountered during development and their solutions.
+
+### Issue: Cannot change screen resolution in VirtualBox
+
+*   **Symptom:** Attempting to change the resolution with `xrandr` results in a `BadMatch (invalid parameter attributes)` error.
+*   **Cause:** The guest OS video driver in VirtualBox cannot correctly handle the custom video mode.
+*   **Solution:**
+    1.  **Install Guest Additions.** This is the most reliable method.
+    2.  **Use `VBoxManage`.** Turn off the VM and run `VBoxManage setextradata "VM Name" "CustomVideoMode1" "320x240x16"` on your host machine.
+    3.  **Manual Resize.** After installing Guest Additions, you can often just manually resize the VM window to a small size, and the internal resolution will adjust automatically.
+
+### Issue: `tint2` does not autostart with Openbox
+
+*   **Symptom:** The `tint2` panel does not appear after logging into Openbox, but it starts manually from the terminal.
+*   **Cause:** The `~/.config/openbox/autostart` file is not executable or is missing a shebang (`#!/bin/bash`).
+*   **Solution:** Ensure the file is executable (`chmod +x ...`) and starts with the shebang. A full reboot often resolves session-related issues.
 
 ---
-
 ## VII. Acknowledgements
 
 *   Thanks to **Google** for the **Gemini** language model, which served as an AI assistant and helped with the development and debugging of many software solutions.
