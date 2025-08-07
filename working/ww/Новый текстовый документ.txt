@@ -1,0 +1,129 @@
+/*
+==========================================================================
+ Скетч для "pseudoTrackpoint" v4.2 - "Прирученный Франкенштейн"
+ Версия 4.2: Корректное объединение DigiMouse и DigiKeyboard.
+ Проект: CLST2 Cyberdeck
+ Платформа: DigiSpark (ATtiny85)
+==========================================================================
+(Используются ТОЛЬКО СТАНДАРТНЫЕ библиотеки из пакета Digistump)
+==========================================================================
+*/
+
+// --- ХАК ДЛЯ ОБЪЕДИНЕНИЯ БИБЛИОТЕК ---
+#define _DigiUSB_h_ // Обманываем DigiKeyboard, говоря, что DigiUSB уже подключен
+#include <DigiKeyboard.h>
+#include <DigiMouse.h>
+// --- КОНЕЦ ХАКА ---
+
+#include <avr/eeprom.h>
+
+// ===================================================================
+// --- СЕКЦИЯ КОНФИГУРАЦИИ ---
+#define ROTATION_0_DEGREES
+// #define ROTATION_90_DEGREES
+// #define ROTATION_180_DEGREES
+// #define ROTATION_270_DEGREES
+// ===================================================================
+
+// --- НАСТРОЙКИ ПИНОВ И ПАРАМЕТРОВ ---
+const int X_PIN = 1;      // A1 (P2)
+const int Y_PIN = 2;      // A2 (P4)
+const int BUTTON_PIN = 1; // P1
+const int R_PIN = 0, G_PIN = 3, B_PIN = 5;
+const int DEAD_ZONE_PERCENT = 10, SENSITIVITY_DEFAULT = 2, SENSITIVITY_MAX = 20;
+
+// --- Глобальные переменные ---
+int sensitivity;
+struct LedState { bool on=false; bool blinking=false; unsigned long blink_timer=0; bool blink_state=false; };
+LedState rgb_leds[3];
+byte last_led_state = 0;
+byte press_counter = 0;
+unsigned long press_timer = 0;
+const int MULTI_PRESS_TIMEOUT = 400;
+bool lastButtonState = HIGH;
+
+// --- ОСНОВНОЙ КОД ---
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(R_PIN, OUTPUT);
+  pinMode(G_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);
+
+  uint8_t stored_sensitivity = eeprom_read_byte((uint8_t*)0);
+  if (stored_sensitivity < SENSITIVITY_DEFAULT || stored_sensitivity > SENSITIVITY_MAX) {
+    sensitivity = SENSITIVITY_DEFAULT;
+  } else {
+    sensitivity = stored_sensitivity;
+  }
+}
+
+void loop() {
+  // --- 1. Логика мыши ---
+  int x_val = analogRead(X_PIN);
+  int y_val = analogRead(Y_PIN);
+  int mapped_x = map(x_val, 0, 1023, -sensitivity, sensitivity);
+  int mapped_y = map(y_val, 0, 1023, sensitivity, -sensitivity);
+  int dx, dy;
+
+  #if defined(ROTATION_0_DEGREES)
+    dx = mapped_x; dy = mapped_y;
+  #elif defined(ROTATION_90_DEGREES)
+    dx = -mapped_y; dy = mapped_x;
+  #elif defined(ROTATION_180_DEGREES)
+    dx = -mapped_x; dy = -mapped_y;
+  #elif defined(ROTATION_270_DEGREES)
+    dx = mapped_y; dy = -mapped_x;
+  #else
+    #error "Не выбрана ориентация джойстика!"
+  #endif
+
+  int dead_zone_threshold = (DEAD_ZONE_PERCENT * sensitivity) / 100;
+  if (abs(dx) <= dead_zone_threshold) dx = 0;
+  if (abs(dy) <= dead_zone_threshold) dy = 0;
+
+  bool currentButtonState = digitalRead(BUTTON_PIN);
+  if (currentButtonState == LOW && lastButtonState == HIGH) DigiMouse.press(1);
+  else if (currentButtonState == HIGH && lastButtonState == LOW) DigiMouse.release(1);
+  lastButtonState = currentButtonState;
+  
+  DigiMouse.move(dx, dy, 0);
+
+  // --- 2. Логика перехвата LED-команд ---
+  byte current_led_state = DigiKeyboard.getLEDs();
+  
+  if (current_led_state != last_led_state) {
+    if (millis() - press_timer > MULTI_PRESS_TIMEOUT) press_counter = 0;
+    press_timer = millis();
+    press_counter++;
+    byte pressed_bits = (current_led_state ^ last_led_state) & current_led_state;
+    if (pressed_bits & NUM_LOCK) {
+      sensitivity += 2;
+      if (sensitivity > SENSITIVITY_MAX) sensitivity = SENSITIVITY_MAX;
+      eeprom_write_byte((uint8_t*)0, (uint8_t)sensitivity);
+    }
+    if (pressed_bits & CAPS_LOCK) {
+      if (press_counter == 1) rgb_leds[0].blinking = !rgb_leds[0].blinking;
+      if (press_counter == 2) rgb_leds[1].blinking = !rgb_leds[1].blinking;
+      if (press_counter == 3) rgb_leds[2].blinking = !rgb_leds[2].blinking;
+      if (press_counter == 4) {
+        sensitivity = SENSITIVITY_DEFAULT;
+        eeprom_write_byte((uint8_t*)0, (uint8_t)sensitivity);
+      }
+    }
+    if (pressed_bits & SCROLL_LOCK) {
+      if (press_counter == 1) rgb_leds[0].on = !rgb_leds[0].on;
+      if (press_counter == 2) rgb_leds[1].on = !rgb_leds[1].on;
+      if (press_counter == 3) rgb_leds[2].on = !rgb_leds[2].on;
+    }
+    if (press_counter >= 4) press_counter = 0;
+    last_led_state = current_led_state;
+  }
+  if (millis() - press_timer > MULTI_PRESS_TIMEOUT) press_counter = 0;
+
+  // --- 3. Логика управления светодиодами ---
+  // ... (этот блок без изменений) ...
+  
+  DigiMouse.update();
+  DigiKeyboard.update();
+  delay(5);
+}

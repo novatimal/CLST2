@@ -2,10 +2,9 @@
 
 # ==========================================================
 # Установочный скрипт для драйверов проекта CLST2
-# Версия 2.1 - Файлы сервисов systemd генерируются "на лету"
+# Версия 2.2 - Финальная, исправленная версия
 # ==========================================================
 
-# Немедленно завершить работу при любой ошибке
 set -e
 
 # --- Проверки и глобальные переменные ---
@@ -16,19 +15,15 @@ fi
 
 echo ">>> Начало полной установки и настройки системы для CLST2..."
 
-# Определяем директории
 INSTALL_DIR="/usr/local/bin"
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ARMBIAN_ENV_FILE="/boot/armbianEnv.txt"
 
-# --- Функция для включения оверлеев в /boot/armbianEnv.txt ---
+# --- Функции-помощники ---
 enable_overlay() {
   local overlay_name="$1"
   echo "Проверка оверлея: $overlay_name..."
-  if [ ! -f "$ARMBIAN_ENV_FILE" ]; then
-    echo "Предупреждение: Файл $ARMBIAN_ENV_FILE не найден. Создаем его."
-    touch "$ARMBIAN_ENV_FILE"
-  fi
+  if [ ! -f "$ARMBIAN_ENV_FILE" ]; then touch "$ARMBIAN_ENV_FILE"; fi
   if grep -q "^overlays=" "$ARMBIAN_ENV_FILE"; then
     if ! grep "^overlays=" "$ARMBIAN_ENV_FILE" | grep -q "\b${overlay_name}\b"; then
       sed -i "/^overlays=/ s/$/ ${overlay_name}/" "$ARMBIAN_ENV_FILE"
@@ -42,13 +37,44 @@ enable_overlay() {
   fi
 }
 
+set_extra_args() {
+  local new_arg="$1"
+  echo "Проверка параметра ядра: $new_arg..."
+  if [ ! -f "$ARMBIAN_ENV_FILE" ]; then touch "$ARMBIAN_ENV_FILE"; fi
+  if grep -q "^extraargs=" "$ARMBIAN_ENV_FILE"; then
+    if ! grep "^extraargs=" "$ARMBIAN_ENV_FILE" | grep -q "\b${new_arg}\b"; then
+      sed -i "/^extraargs=/ s/$/ ${new_arg}/" "$ARMBIAN_ENV_FILE"
+      echo "Параметр '${new_arg}' добавлен."
+    else
+      echo "Параметр '${new_arg}' уже был установлен."
+    fi
+  else
+    echo -e "\nextraargs=${new_arg}" >> "$ARMBIAN_ENV_FILE"
+    echo "Параметр '${new_arg}' добавлен."
+  fi
+}
+
+set_disp_mode() {
+  local mode="$1"
+  echo "Установка режима дисплея: $mode..."
+  if [ ! -f "$ARMBIAN_ENV_FILE" ]; then touch "$ARMBIAN_ENV_FILE"; fi
+  if grep -q "^disp_mode=" "$ARMBIAN_ENV_FILE"; then
+    sed -i "s/^disp_mode=.*/disp_mode=${mode}/" "$ARMBIAN_ENV_FILE"
+  else
+    echo "disp_mode=${mode}" >> "$ARMBIAN_ENV_FILE"
+  fi
+  echo "Режим дисплея установлен на '${mode}'."
+}
+
 # --- Шаг 1: Установка системных зависимостей ---
 echo ">>> Шаг 1: Установка необходимых пакетов..."
 apt-get update
 apt-get install -y build-essential cmake libi2c-dev git
 
-# --- Шаг 2: Включение аппаратных интерфейсов ---
-echo ">>> Шаг 2: Включение аппаратных интерфейсов I2C, SPI и I2S..."
+# --- Шаг 2: Настройка загрузчика и аппаратных интерфейсов ---
+echo ">>> Шаг 2: Настройка параметров загрузки и аппаратных интерфейсов..."
+set_disp_mode "320x240p60"
+set_extra_args "video=HDMI-A-1:320x240@60"
 enable_overlay "i2c0"
 enable_overlay "spi-spidev"
 enable_overlay "i2s-sound"
@@ -57,24 +83,20 @@ enable_overlay "i2s-sound"
 
 ## -- 3.1 УСТАНОВКА CARDKB DAEMON --
 echo ">>> Шаг 3.1: Компиляция драйвера клавиатуры (cardkb)..."
-g++ -std=c++17 -O2 "$SOURCE_DIR/hardware_drv/cardkb/cardkb_daemon.cpp" -o "$INSTALL_DIR/cardkb_daemon"
+g++ -std=c++17 -O2 "$SOURCE_DIR/hardware_drv/cardkb/cardkb_daemon.cpp" -o "$INSTALL_DIR/cardkb_daemon" -lpthread
 chmod +x "$INSTALL_DIR/cardkb_daemon"
-echo "Драйвер cardkb успешно установлен в $INSTALL_DIR/cardkb_daemon"
+echo "Драйвер cardkb успешно установлен."
 
 ## -- 3.2 УСТАНОВКА FAN CONTROL DAEMON --
 echo ">>> Шаг 3.2: Компиляция драйвера вентилятора (fan_control)..."
 g++ -std=c++17 -O2 "$SOURCE_DIR/hardware_drv/fan/fan_control_daemon.cpp" -o "$INSTALL_DIR/fan_control_daemon" -lpthread
 chmod +x "$INSTALL_DIR/fan_control_daemon"
-echo "Драйвер вентилятора успешно установлен в $INSTALL_DIR/fan_control_daemon"
+echo "Драйвер вентилятора успешно установлен."
 
 ## -- 3.3 УСТАНОВКА FBCP --
-echo ">>> Шаг 3.3: Загрузка и компиляция Framebuffer Copy (fbcp)..."
-if [ -d "$SOURCE_DIR/hardware_drv/fbcp/fbcp-ili9341" ]; then
-    echo "Исходники fbcp уже существуют. Пропускаем загрузку."
-else
-    git clone https://github.com/juj/fbcp-ili9341.git "$SOURCE_DIR/hardware_drv/fbcp/fbcp-ili9341"
-fi
-cd "$SOURCE_DIR/hardware_drv/fbcp/fbcp-ili9341"
+echo ">>> Шаг 3.3: Компиляция Framebuffer Copy (fbcp) из локальных исходников..."
+# Переходим в папку с локальными исходниками, которые мы добавили в репозиторий
+cd "$SOURCE_DIR/hardware_drv/fbcp/fbcp-ili9341-master" 
 mkdir -p build
 cd build
 cmake -DST7789V=ON \
@@ -88,7 +110,7 @@ cmake -DST7789V=ON \
 make -j$(nproc)
 cp fbcp-ili9341 "$INSTALL_DIR/fbcp_daemon"
 chmod +x "$INSTALL_DIR/fbcp_daemon"
-echo "Драйвер fbcp успешно установлен в $INSTALL_DIR/fbcp_daemon"
+echo "Драйвер fbcp успешно установлен."
 cd "$SOURCE_DIR"
 
 # --- Шаг 4: Настройка системных сервисов (systemd) ---
