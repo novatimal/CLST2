@@ -4,11 +4,17 @@
 
 [![Status](https://img.shields.io/badge/status-early%20beta-orange)](https://shields.io)
 
-> **Note:** 99% of this project (including almost all the names like "chiper-slot") was created by Google's Gemini language model, this project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
+> **Note:** 99% of this project (including almost all the names like "cipher-slot") was created by Google's Gemini language model, this project is in early beta. Expect bugs, missing features, and frequent changes. Contributions and feedback are welcome!
 
 This is the repository for a project to build a retro-style handheld computer (PDA/Cyberdeck). The device is based on the Orange Pi Zero 2W single-board computer and uses custom drivers and a finely-tuned Linux environment for a comfortable user experience on a small screen.
 
 **This README contains detailed instructions for assembly, software installation, and solutions to problems encountered during development.**
+
+<p align="center">
+  <img src="images/openBench.jpg" alt="CLST2 open bench setup" width="600">
+  <br>
+  <em>Fig. 1 - Photo of my open bench setup.</em>
+</p>
 
 ## I. Concept and Philosophy
 
@@ -134,25 +140,75 @@ sudo reboot
 
 ## V. Openbox Desktop Configuration
 
-After installation, it is recommended to switch to the lightweight Openbox window manager for a comfortable experience.
+After the first login, you will see a basic XDM login screen. Log in to your Openbox session to get a minimal desktop. Let's make it more comfortable and functional.
 
-1.  **Log into an Openbox session:**
-    *   Log out of your current session.
-    *   On the login screen, click your username.
-    *   A gear icon (⚙️) should appear in the corner. Click it and select "Openbox".
-    *   Enter your password and log in.
-2.  **Initial Setup:**
-    *   You will see a blank gray screen. Right-click -> Terminal.
-    *   Copy the default configuration files:
-        ```bash
-        mkdir -p ~/.config/openbox
-        cp /etc/xdg/openbox/* ~/.config/openbox/
-        ```
-    *   Set up autostart for `tint2` and other programs by adding `tint2 &` to the `~/.config/openbox/autostart` file. Make sure it's executable (`chmod +x ~/.config/openbox/autostart`).
-3.  **Interface Customization:**
-    *   Use `nano` to edit `~/.config/openbox/rc.xml` (for keybindings) and `~/.config/openbox/menu.xml` (for the right-click menu). It is recommended to set the default font to `Terminus` for clarity.
-    *   Use `tint2conf` for graphical configuration of the `tint2` panel.
-    *   Install `lxappearance` to easily change GTK themes and icons.
+1.  **Install Essential Desktop Components:**
+    First, let's install a better terminal, a file manager, a wallpaper manager (`feh`), and the network manager applet.
+    ```bash
+    sudo apt install -y sakura pcmanfm feh network-manager-gnome
+    ```
+    *   `sakura`: A lightweight and pleasant terminal emulator.
+    *   `pcmanfm`: A fast and simple file manager.
+    *   `feh`: A tool to set the desktop wallpaper.
+    *   `network-manager-gnome`: Provides the `nm-applet` for a Wi-Fi icon in the system tray.
+
+2.  **Copy Default Configurations:**
+    To start customizing, copy the default Openbox configuration files to your home directory.
+    ```bash
+    mkdir -p ~/.config/openbox
+    cp /etc/xdg/openbox/* ~/.config/openbox/
+    ```
+
+3.  **Configure Autostart:**
+    We need to tell Openbox what programs to launch at startup.
+    ```bash
+    # Open the autostart file with nano
+    nano ~/.config/openbox/autostart
+    ```
+    Add the following lines to the file:
+    ```bash
+    # Set a black background color as a fallback
+    xsetroot -solid black &
+
+    # (Optional) Set your wallpaper. Create a Pictures folder and place your image there.
+    # feh --bg-scale ~/Pictures/wallpaper.png &
+
+    # Launch the Network Manager applet for the Wi-Fi icon
+    nm-applet &
+
+    # Launch the tint2 panel
+    tint2 &
+    ```
+    Save the file (`Ctrl+O`, `Enter`) and exit (`Ctrl+X`). Now, make it executable:
+    ```bash
+    chmod +x ~/.config/openbox/autostart
+    ```
+
+4.  **Configure tint2 for a System Tray:**
+    We need to enable the notification area (system tray) in our `tint2` panel.
+    ```bash
+    # Open the tint2 configuration file
+    nano ~/.config/tint2/tint2rc
+    ```
+    Find the line that starts with `panel_items = ...` and add the letter **S** to it (which stands for System Tray). It's usually best placed before the clock (`C`).
+    
+    *   Example: Change `panel_items = LTSBC` to `panel_items = LTS**S**BC`
+
+5.  **Re-login or Reboot:**
+    To apply all changes, either log out and log back into your Openbox session, or simply reboot the device. You should now see a functional desktop with a wallpaper and a Wi-Fi icon on your `tint2` panel!
+
+
+<p align="center">
+  <img src="images/desktop.jpg" alt="Openbox desktop with tint2" width="600">
+  <br>
+  <em>Fig. 2 - A screenshot of the custom Openbox environment.</em>
+</p>
+
+<p align="center">
+  <img src="images/login.jpg" alt="XDM login window" width="600">
+  <br>
+  <em>Fig. 3 - A screenshot of XDM login window.</em>
+</p>
 
 ---
 ## VI. Troubleshooting
