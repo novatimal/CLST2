@@ -2,7 +2,7 @@
 
 # ==========================================================
 # Установочный скрипт для драйверов проекта CLST2
-# Версия 3.0 - Мультиязычный интерфейс (EN/RU)
+# Версия 3.1 - Без демона вентилятора, с настройкой видео
 # ==========================================================
 
 set -e
@@ -59,19 +59,19 @@ enable_overlay() {
   fi
 }
 
-set_extra_args() {
+set_user_extra_args() {
   local new_arg="$1"
   _print "Checking kernel parameter: $new_arg..." "Проверка параметра ядра: $new_arg..."
   if [ ! -f "$ARMBIAN_ENV_FILE" ]; then touch "$ARMBIAN_ENV_FILE"; fi
-  if grep -q "^extraargs=" "$ARMBIAN_ENV_FILE"; then
-    if ! grep "^extraargs=" "$ARMBIAN_ENV_FILE" | grep -q "${new_arg}"; then
-      sed -i "/^extraargs=/ s/$/ ${new_arg}/" "$ARMBIAN_ENV_FILE"
+  if grep -q "^userextraargs=" "$ARMBIAN_ENV_FILE"; then
+    if ! grep "^userextraargs=" "$ARMBIAN_ENV_FILE" | grep -q "${new_arg}"; then
+      sed -i "/^userextraargs=/ s/$/ ${new_arg}/" "$ARMBIAN_ENV_FILE"
       _print "Parameter '${new_arg}' added." "Параметр '${new_arg}' добавлен."
     else
       _print "Parameter '${new_arg}' was already set." "Параметр '${new_arg}' уже был установлен."
     fi
   else
-    echo -e "\nextraargs=${new_arg}" >> "$ARMBIAN_ENV_FILE"
+    echo -e "\nuserextraargs=${new_arg}" >> "$ARMBIAN_ENV_FILE"
     _print "Parameter '${new_arg}' added." "Параметр '${new_arg}' добавлен."
   fi
 }
@@ -95,9 +95,9 @@ apt-get install -y build-essential cmake libi2c-dev git
 
 # --- Шаг 2: Настройка загрузчика и аппаратных интерфейсов ---
 _print "\n>>> Step 2: Configuring bootloader and hardware interfaces..." "\n>>> Шаг 2: Настройка параметров загрузки и аппаратных интерфейсов..."
-set_disp_mode "320x240p60"
-set_extra_args "video=HDMI-A-1:320x240@60"
-enable_overlay "i2c0"
+set_disp_mode "640x480p60"
+set_user_extra_args "video=HDMI-A-1:640x480@60"
+enable_overlay "i2c1" # Используем i2c1, как договорились
 enable_overlay "spi-spidev"
 enable_overlay "i2s-sound"
 
@@ -109,17 +109,11 @@ g++ -std=c++17 -O2 "$SOURCE_DIR/hardware_drv/cardkb/cardkb_daemon.cpp" -o "$INST
 chmod +x "$INSTALL_DIR/cardkb_daemon"
 _print "cardkb driver installed successfully." "Драйвер cardkb успешно установлен."
 
-## -- 3.2 УСТАНОВКА FAN CONTROL DAEMON --
-_print "\n>>> Step 3.2: Compiling fan control driver..." "\n>>> Шаг 3.2: Компиляция драйвера вентилятора..."
-g++ -std=c++17 -O2 "$SOURCE_DIR/hardware_drv/fan/fan_control_daemon.cpp" -o "$INSTALL_DIR/fan_control_daemon" -lpthread
-chmod +x "$INSTALL_DIR/fan_control_daemon"
-_print "Fan control driver installed successfully." "Драйвер вентилятора успешно установлен."
-
-## -- 3.3 УСТАНОВКА FBCP --
-_print "\n>>> Step 3.3: Compiling Framebuffer Copy (fbcp) from local sources..." "\n>>> Шаг 3.3: Компиляция Framebuffer Copy (fbcp) из локальных исходников..."
+## -- 3.2 УСТАНОВКА FBCP --
+_print "\n>>> Step 3.2: Compiling Framebuffer Copy (fbcp) from local sources..." "\n>>> Шаг 3.2: Компиляция Framebuffer Copy (fbcp) из локальных исходников..."
 cd "$SOURCE_DIR/hardware_drv/fbcp/fbcp-ili9341-master"
 mkdir -p build && cd build
-cmake -DST7789V=ON -DGPIO_TFT_DATA_CONTROL=10 -DGPIO_TTFT_RESET_PIN=0 -DGPIO_TFT_BACKLIGHT=2 -DSPI_BUS_CLOCK_DIVISOR=6 -DBACKLIGHT_CONTROL=ON -DROTATE_DISPLAY=90 ..
+cmake -DST7789V=ON -DGPIO_TFT_DATA_CONTROL=10 -DGPIO_TFT_RESET_PIN=0 -DGPIO_TFT_BACKLIGHT=2 -DSPI_BUS_CLOCK_DIVISOR=6 -DBACKLIGHT_CONTROL=ON -DROTATE_DISPLAY=90 ..
 make -j$(nproc)
 cp fbcp-ili9341 "$INSTALL_DIR/fbcp_daemon"
 chmod +x "$INSTALL_DIR/fbcp_daemon"
@@ -136,23 +130,9 @@ Description=CardKB I2C Keyboard Daemon for CLST2
 After=multi-user.target
 [Service]
 Type=simple
-ExecStart=${INSTALL_DIR}/cardkb_daemon -i /dev/i2c-0
+ExecStart=${INSTALL_DIR}/cardkb_daemon -i /dev/i2c-1
 Restart=always
 RestartSec=5
-[Install]
-WantedBy=multi-user.target
-EOL
-
-_print "Creating fan_control.service..." "Создание fan_control.service..."
-cat > /etc/systemd/system/fan_control.service << EOL
-[Unit]
-Description=Fan Control Daemon for CLST2
-After=multi-user.target
-[Service]
-Type=simple
-ExecStart=${INSTALL_DIR}/fan_control_daemon
-Restart=always
-RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOL
@@ -173,7 +153,6 @@ EOL
 
 systemctl daemon-reload
 systemctl enable cardkb.service
-systemctl enable fan_control.service
 systemctl enable fbcp.service
 
 _print "Services have been configured for auto-start." "Сервисы успешно настроены для автозапуска."
